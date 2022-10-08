@@ -1,0 +1,81 @@
+//Copy Source | Copy HTML
+using System;
+using System.Collections.Generic;
+using System.Text;
+ 
+namespace HTTPServer
+{
+    class Server
+    {
+        static void Main(string[] args)
+        {
+ 
+        }
+    }
+}
+ 
+
+//В .NET можно очень легко создать TCP-сервер при помощи класса TcpListener, чем мы и воспользуемся:
+Copy Source | Copy HTML
+class Server
+{
+    TcpListener Listener; // Объект, принимающий TCP-клиентов
+ 
+    // Запуск сервера
+    public Server(int Port)
+    {
+        // Создаем "слушателя" для указанного порта
+        Listener = new TcpListener(IPAddress.Any, Port);
+        Listener.Start(); // Запускаем его
+ 
+        // В бесконечном цикле
+        while (true)
+        {
+            // Принимаем новых клиентов
+            Listener.AcceptTcpClient();
+        }
+    }
+ 
+    // Остановка сервера
+    ~Server()
+    {
+        // Если "слушатель" был создан
+        if (Listener != null)
+        {
+            // Остановим его
+            Listener.Stop();
+        }
+    }
+ 
+    static void Main(string[] args)
+    {
+        // Создадим новый сервер на порту 80
+        new Server(80);
+    }
+}
+
+//Если сейчас запустить приложение, то уже можно будет подключиться к порту 80 и… все. Соединение будет лишь простаивать впустую, так как отсутствует его обработчик и оно не закрывается со стороны сервера.
+Напишем самый простой обработчик:
+Copy Source | Copy HTML
+// Класс-обработчик клиента
+class Client
+{
+    // Конструктор класса. Ему нужно передавать принятого клиента от TcpListener
+    public Client(TcpClient Client)
+    {
+        // Код простой HTML-странички
+        string Html = "<html><body><h1>It works!</h1></body></html>";
+        // Необходимые заголовки: ответ сервера, тип и длина содержимого. После двух пустых строк - само содержимое
+        string Str = "HTTP/1.1 200 OK\nContent-type: text/html\nContent-Length:" + Html.Length.ToString() + "\n\n" + Html;
+        // Приведем строку к виду массива байт
+        byte[] Buffer = Encoding.ASCII.GetBytes(Str);
+        // Отправим его клиенту
+        Client.GetStream().Write(Buffer,  0, Buffer.Length);
+        // Закроем соединение
+        Client.Close();
+    }
+}
+// Чтобы передать ему клиента, нужно изменить одну строчку в классе Server:
+Copy Source | Copy HTML
+// Принимаем новых клиентов и передаем их на обработку новому экземпляру класса Client
+new Client(Listener.AcceptTcpClient());
